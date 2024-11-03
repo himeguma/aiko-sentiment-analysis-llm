@@ -107,6 +107,11 @@ def plot_radar_chart_graph(values):
         )
     # インタラクションを完全に無効化
     fig.update_layout(dragmode=False)
+    # 背景色を白に設定
+    fig.update_layout(
+        plot_bgcolor="white",  # プロット部分の背景を白に
+        paper_bgcolor="white",  # 用紙全体の背景を白に
+    )
     # レーダーチャートのレイアウト設定（軸と目盛りは黒）
     fig.update_layout(
         width=500,  # 横幅を設定
