@@ -366,6 +366,19 @@ if options:
         ["順位", "曲名", "converted_image_urls"] + EMOTION_LIST
     ].head(n=10)
 
+    st.write(":medal:**1位は...**")
+
+    st.image(
+        df_similarity_display[df_similarity["順位"] == "1位"][
+            "converted_image_urls"
+        ].values[0],
+        width=500,
+    )
+    st.write(
+        f"**{df_similarity_display[df_similarity["順位"] == "1位"]["曲名"].values[0]}**　です！"
+    )
+    st.write("")
+
     # 類似度の高い曲の表示
     st.dataframe(
         df_similarity_display,
