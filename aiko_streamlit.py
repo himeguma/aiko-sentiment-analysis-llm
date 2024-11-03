@@ -336,7 +336,7 @@ if options:
 
     # マルチセレクトのアクティブ時
     st.subheader(
-        "あなたの好きな曲に似た曲",
+        "あなたの好きな曲に似た感情の曲",
         anchor=False,
         divider="red",
     )
