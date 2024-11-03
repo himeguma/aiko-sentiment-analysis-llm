@@ -169,14 +169,23 @@ COLORS = {
 df = load_df()
 
 # =================================================================================
+# config
+st.set_page_config(
+    page_title="aikoの歌詞_感情分析ツール",
+    page_icon=":musical_note:",
+    layout="wide",
+    menu_items={"About": "app created by himeguma"},
+)
 # 表示
-st.header("aikoの歌詞_感情分析ツール", anchor=False, divider="rainbow")
+st.header(
+    ":musical_note: aikoの歌詞_感情分析ツール", anchor=False, divider="rainbow"
+)
 st.write("あなたの好きなaikoの曲を分析します！")
 
 options = st.multiselect(
     "好きな曲を選んでください（複数選択可）",
     df["track_name"],
-    placeholder="全曲リスト",
+    placeholder="全曲リスト（リリース時期順）",
     label_visibility="visible",
 )
 
