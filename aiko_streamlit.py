@@ -22,7 +22,7 @@ def dataframe_row_selection_change_2() -> None:
     """データフレームの行選択の変更時に動作"""
     try:
         # データフレームの列が選択された際のみ実行
-        if "data_similarity" in st.session_state:
+        if "data" in st.session_state:
             if "selection" in st.session_state.data:
                 if "rows" in st.session_state.data.selection:
                     if st.session_state.data.selection.rows:
