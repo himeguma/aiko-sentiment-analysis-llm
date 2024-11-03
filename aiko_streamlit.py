@@ -87,7 +87,8 @@ def plot_radar_chart_graph(values):
                 showlegend=False,
             )
         )
-
+    # インタラクションを完全に無効化
+    fig.update_layout(dragmode=False)
     # レーダーチャートのレイアウト設定（軸と目盛りは黒）
     fig.update_layout(
         width=500,  # 横幅を設定
@@ -132,6 +133,22 @@ def load_df():
     return df
 
 
+@st.dialog("8つの感情とは", width="large")
+def emotion_discription():
+    st.write(r"人間には8つの感情があります")
+    st.write(r"（心理学者のプルチックが考えました）")
+    for each_emotion, each_emotion_discription in zip(
+        EMOTION_LIST, EMOTION_DISCRIPTION_LIST
+    ):
+        # 感情ごとに色を変えて得点とその理由を表示
+        st.write(
+            f"<span style='background-color: {COLORS[each_emotion]}; padding: 4px; border-radius: 4px;'>　　</span> {each_emotion}…{each_emotion_discription}",
+            unsafe_allow_html=True,
+        )
+    if st.button("閉じる"):
+        st.rerun()
+
+
 # 感情名のリスト
 EMOTION_LIST = [
     "喜び",
@@ -165,7 +182,16 @@ COLORS = {
     "悲しみ": "#2F4F6F",
     "驚き": "#5DADE2",
 }
-
+EMOTION_DISCRIPTION_LIST = [
+    "希望が達成された時や、優しさを感じたときのさわやかな気持ち",
+    "心配することなく、信じて安心できる気持ち",
+    "害悪や危険な事柄に対して逃避したいと感じる気持ち",
+    "予期しない事象を体験したときの瞬間的な気持ち",
+    "物事がうまくいかなかったときや、大切なものを失ったときに感じる残念な気持ち",
+    "憎み嫌い、不快に感じる気持ち",
+    "侮辱されたり傷つけられたりしたときに起こる不愉快な気持ち",
+    "事柄が自分の思い通りになることを望む気持ち",
+]
 df = load_df()
 
 # =================================================================================
@@ -178,12 +204,15 @@ st.set_page_config(
 )
 # 表示
 st.header(
-    ":musical_note: aikoの歌詞_感情分析ツール", anchor=False, divider="rainbow"
+    ":musical_note: あなたの好きなaikoの曲を分析します！",
+    anchor=False,
+    divider="rainbow",
 )
-st.write("あなたの好きなaikoの曲を分析します！")
+
+st.write("")
 
 options = st.multiselect(
-    "好きな曲を選んでください（複数選択可）",
+    "好きな曲を選んでください（複数選べます）",
     df["track_name"],
     placeholder="全曲リスト（リリース時期順）",
     label_visibility="visible",
@@ -198,7 +227,11 @@ if options:
         ["曲名", "converted_image_urls"] + EMOTION_LIST
     ]
 
-    st.write("↓ あなたが選んだ曲に対して、感情ごとに点数をつけました")
+    st.write("")
+    if st.button("8つの感情とは？　▼"):
+        emotion_discription()
+
+    st.write("↓　歌詞の感情を100点満点で点数をつけました")
     # 選択した曲の表示
     st.dataframe(
         selected_df_display,
@@ -239,8 +272,15 @@ if options:
         hide_index=True,
     )
 
+    st.write("")
+
     # expanderで理由書きの表示
-    with st.expander("点数の理由はこちら"):
+    with st.expander("点数の理由はここをクリック　▼"):
+
+        st.write("")
+
+        if len(options) > 1:
+            st.write("※下の曲名を押すと曲を切り替えられます")
         # 選ばれた曲ごとにタブを動的に生成
         tab_objects = st.tabs(options)
 
@@ -263,9 +303,11 @@ if options:
                         ].values[0]
                     )
 
+    st.write("")
+
     # 選択範囲のチャートを表示
     st.subheader(
-        "感情の8軸評価レーダーチャート",
+        ":chart_with_upwards_trend:感情グラフ",
         anchor=False,
         divider="red",
     )
@@ -278,35 +320,26 @@ if options:
     # スコアの高い順にソート
     top_emotions = sorted(emotion_scores, key=lambda x: x[1], reverse=True)[:1]
 
+    st.write("")
+
     st.write(
         f"あなたは**{top_emotions[0][0]}**が大きい曲が好きなのかもしれません"
     )
-else:
-    # マルチセレクトの非アクティブ時
-    # 全体平均のチャートを表示
-    st.subheader(
-        "感情の8軸評価レーダーチャート_全曲の平均的な傾向",
-        anchor=False,
-        divider="red",
+    # レーダーチャートを表示
+    st.plotly_chart(
+        plot_radar_chart_graph(values),
+        use_container_width=True,
+        config={"displayModeBar": False},
     )
 
-    # グラフに表示するために得点を記録
-    values = df[EMOTION_GRAPH].mean().astype(int).to_list()
+    st.write("")
 
-    st.write("8つの感情それぞれで点数をつけています")
-
-# レーダーチャートを表示
-st.plotly_chart(plot_radar_chart_graph(values), use_container_width=True)
-
-if options:
     # マルチセレクトのアクティブ時
     st.subheader(
         "あなたの好きな曲に似た曲",
         anchor=False,
         divider="red",
     )
-
-    st.write("あなたが選んだ曲に似た感情の曲はこちらです")
 
     # 選択されたスコアの値
     selected_song_scores = pd.DataFrame(values).T
@@ -322,8 +355,6 @@ if options:
 
     # 類似度の高い曲の元の情報を参照
     df_similarity = df.loc[top_similar_df.index.to_list()]
-    # 体裁調整
-    df_similarity["類似度"] = df_emotion["similarity"]
     # 選択済みの曲は除外
     df_similarity = df_similarity[~df_similarity["曲名"].isin(options)]
     # 順位の列を追加する
@@ -332,7 +363,7 @@ if options:
 
     # 表示するものに絞り込む
     df_similarity_display = df_similarity[
-        ["順位", "類似度", "曲名", "converted_image_urls"] + EMOTION_LIST
+        ["順位", "曲名", "converted_image_urls"] + EMOTION_LIST
     ].head(n=10)
 
     # 類似度の高い曲の表示
@@ -375,14 +406,16 @@ if options:
         hide_index=True,
     )
 
+st.write("")
 st.divider()
+st.write("")
 
 st.subheader(
     "感情別曲ランキング",
     anchor=False,
     divider="red",
 )
-
+st.write("")
 st.write("感情を選択すると、感情別に曲を並び替えられます")
 
 # セレクトボックスは横並びに表示
@@ -471,7 +504,7 @@ if selected_emotion:
         key="data",
     )
 
-    st.write(":arrow_up:この列を押すと分析結果がでます")
+    st.write(":arrow_up:**この列を押すと分析結果がでます**")
 
     # データフレームの列が選択された際のみ実行
     if "data" in st.session_state:
@@ -488,6 +521,7 @@ if selected_emotion:
                         st.write(
                             f":red-background[**{selected_song}**]の感情分析"
                         )
+                        st.write("")
 
                         # 感情ごとに色を変えて得点とその理由を表示
                         for each_emotion in EMOTION_LIST:
