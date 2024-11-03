@@ -5,10 +5,28 @@ import ast
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def dataframe_row_selection_change() -> None:
+def dataframe_row_selection_change_1() -> None:
     """データフレームの行選択の変更時に動作"""
     try:
-        print(st.session_state.data.selection["rows"])
+        # データフレームの列が選択された際のみ実行
+        if "data_similarity" in st.session_state:
+            if "selection" in st.session_state.data_similarity:
+                if "rows" in st.session_state.data_similarity.selection:
+                    if st.session_state.data_similarity.selection.rows:
+                        each_emotion_dialog_1()
+    except:
+        pass
+
+
+def dataframe_row_selection_change_2() -> None:
+    """データフレームの行選択の変更時に動作"""
+    try:
+        # データフレームの列が選択された際のみ実行
+        if "data_similarity" in st.session_state:
+            if "selection" in st.session_state.data:
+                if "rows" in st.session_state.data.selection:
+                    if st.session_state.data.selection.rows:
+                        each_emotion_dialog_2()
     except:
         pass
 
@@ -149,6 +167,74 @@ def emotion_discription():
         st.rerun()
 
 
+@st.dialog(" ", width="large")
+def each_emotion_dialog_1():
+    # データフレームの列が選択された際のみ実行
+    if "data_similarity" in st.session_state:
+        if "selection" in st.session_state.data_similarity:
+            if "rows" in st.session_state.data_similarity.selection:
+                if st.session_state.data_similarity.selection.rows:
+                    # 選択された曲の読み込み
+                    selected_song = df_similarity_display.iloc[
+                        st.session_state.data_similarity.selection.rows
+                    ]["曲名"].values[0]
+
+                    st.write(f":red-background[**{selected_song}**]の感情分析")
+                    st.write("")
+
+                    # 感情ごとに色を変えて得点とその理由を表示
+                    for each_emotion in EMOTION_LIST:
+                        st.write(
+                            f"<span style='background-color: {COLORS[each_emotion]}; padding: 4px; border-radius: 4px;'>　　</span> {each_emotion}　{str(
+                                        df[df["曲名"] == selected_song][
+                                            each_emotion
+                                        ].values[0]
+                                    )}点 <span style='background-color: {COLORS[each_emotion]}; padding: 4px; border-radius: 4px;'>　　</span>",
+                            unsafe_allow_html=True,
+                        )
+                        st.write(
+                            df[df["曲名"] == selected_song][
+                                each_emotion + "スコアの理由"
+                            ].values[0]
+                        )
+    if st.button("閉じる"):
+        st.rerun()
+
+
+@st.dialog(" ", width="large")
+def each_emotion_dialog_2():
+    # データフレームの列が選択された際のみ実行
+    if "data" in st.session_state:
+        if "selection" in st.session_state.data:
+            if "rows" in st.session_state.data.selection:
+                if st.session_state.data.selection.rows:
+                    # 選択された曲の読み込み
+                    selected_song = df_selected_emotion_display.iloc[
+                        st.session_state.data.selection.rows
+                    ]["曲名"].values[0]
+
+                    st.write(f":red-background[**{selected_song}**]の感情分析")
+                    st.write("")
+
+                    # 感情ごとに色を変えて得点とその理由を表示
+                    for each_emotion in EMOTION_LIST:
+                        st.write(
+                            f"<span style='background-color: {COLORS[each_emotion]}; padding: 4px; border-radius: 4px;'>　　</span> {each_emotion}　{str(
+                                        df[df["曲名"] == selected_song][
+                                            each_emotion
+                                        ].values[0]
+                                    )}点 <span style='background-color: {COLORS[each_emotion]}; padding: 4px; border-radius: 4px;'>　　</span>",
+                            unsafe_allow_html=True,
+                        )
+                        st.write(
+                            df[df["曲名"] == selected_song][
+                                each_emotion + "スコアの理由"
+                            ].values[0]
+                        )
+    if st.button("閉じる"):
+        st.rerun()
+
+
 # 感情名のリスト
 EMOTION_LIST = [
     "喜び",
@@ -211,10 +297,26 @@ st.header(
 
 st.write("")
 
+# 並び替えられるよう実装
+radio_button = st.radio(
+    "順番を指定",
+    ["人気順", "あいうえお順", "リリース時期順"],
+    key="visibility",
+    label_visibility="collapsed",
+    # disabled=st.session_state.disabled,
+    horizontal=True,
+)
+if radio_button == "人気順":
+    _df_sorted = df.sort_values("view_count", ascending=False)
+elif radio_button == "あいうえお順":
+    _df_sorted = df.sort_values("ひらがな名", ascending=True)
+else:
+    _df_sorted = df
+
 options = st.multiselect(
-    "好きな曲を選んでください（複数選べます）",
-    df["track_name"],
-    placeholder="全曲リスト（リリース時期順）",
+    "好きな曲を選んでください（複数選択できて、文字での検索もできます）",
+    _df_sorted["track_name"],
+    placeholder=f"全曲リスト（{radio_button}）",
     label_visibility="visible",
 )
 
@@ -372,7 +474,7 @@ if options:
         df_similarity_display[df_similarity["順位"] == "1位"][
             "converted_image_urls"
         ].values[0],
-        width=500,
+        width=300,
     )
     st.write(
         f"**{df_similarity_display[df_similarity["順位"] == "1位"]["曲名"].values[0]}**　です！"
@@ -417,7 +519,12 @@ if options:
         },
         use_container_width=False,
         hide_index=True,
+        on_select=dataframe_row_selection_change_1,
+        selection_mode=["single-row"],
+        key="data_similarity",
     )
+
+    st.write(":arrow_up:**この列を押すと分析結果がでます**")
 
 st.write("")
 st.divider()
@@ -512,42 +619,9 @@ if selected_emotion:
         },
         use_container_width=False,
         hide_index=True,
-        on_select=dataframe_row_selection_change,
+        on_select=dataframe_row_selection_change_2,
         selection_mode=["single-row"],
         key="data",
     )
 
     st.write(":arrow_up:**この列を押すと分析結果がでます**")
-
-    # データフレームの列が選択された際のみ実行
-    if "data" in st.session_state:
-        if "selection" in st.session_state.data:
-            if "rows" in st.session_state.data.selection:
-                if st.session_state.data.selection.rows:
-                    # 選択された曲の読み込み
-                    selected_song = df_selected_emotion_display.iloc[
-                        st.session_state.data.selection.rows
-                    ]["曲名"].values[0]
-
-                    # 枠を表示
-                    with st.container(border=True):
-                        st.write(
-                            f":red-background[**{selected_song}**]の感情分析"
-                        )
-                        st.write("")
-
-                        # 感情ごとに色を変えて得点とその理由を表示
-                        for each_emotion in EMOTION_LIST:
-                            st.write(
-                                f"<span style='background-color: {COLORS[each_emotion]}; padding: 4px; border-radius: 4px;'>　　</span> {each_emotion}　{str(
-                                            df[df["曲名"] == selected_song][
-                                                each_emotion
-                                            ].values[0]
-                                        )}点 <span style='background-color: {COLORS[each_emotion]}; padding: 4px; border-radius: 4px;'>　　</span>",
-                                unsafe_allow_html=True,
-                            )
-                            st.write(
-                                df[df["曲名"] == selected_song][
-                                    each_emotion + "スコアの理由"
-                                ].values[0]
-                            )
